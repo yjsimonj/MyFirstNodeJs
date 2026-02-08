@@ -1,42 +1,63 @@
 const http = require('http');
-const fs = require('fs');
+const fs = require('fs').promises;
 const url = require('url');
 const path = require('path');
-    console.log("fuck!");
+const { stripTypeScriptTypes } = require('module');
 
-const app = http.createServer((request, response) => {
+async function getFile(filename){
+    try{
+        return await fs.readFile(filename, 'utf8');
+    } catch(err){
+        console.log("Can't find "+filename);
+    }
+}
+
+async function getDirList(directoryname){
+    try{
+        let list=`<ol>`;
+        const data = await fs.readdir(directoryname, 'utf8');
+        for(const filename of data){
+            if(filename !== 'home'){
+                list += `<li><a href='/?id=${filename}'>${filename}</a></li>
+                `
+            }
+        }
+        list += `</ol>`;
+        return list;
+    } catch(err){
+        console.log("Can't find"+directoryname);
+    }
+}
+
+const app = http.createServer(async (request, response) => {
     const queryData = url.parse(request.url, true).query;
     const pathname = url.parse(request.url, true).pathname;
-    if(pathname === '/' && queryData.id !== undefined){
-        let description = fs.readFileSync(path.join(__dirname, 'description', queryData.id), 'utf8');
+
+    if(pathname === '/'){
+        const id = queryData.id || 'home'
+        const description = await getFile(path.join(__dirname, 'description', id));
+        const list = await getDirList(path.join(__dirname, 'description'));
         let template = `
         <h1><a href="/">About Cat</a></h1>
-        <ol>
-            <li><a href="/?id=1">picture 1</a></li>
-            <li><a href="/?id=2">picture 2</a></li>
-            <li><a href="/?id=3">picture 3</a></li>
-        </ol>
-        <h2>cat ${queryData.id}</h2>
+        ${list}
+        <h2>cat ${id}</h2>
         <p>${description}</p>
         `;
         response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
         response.end(template);
     }
-    else if(pathname === '/' && queryData.id === undefined){
-        let description = fs.readFileSync(path.join(__dirname, 'description', 'home'), 'utf8');
+    /*else if(pathname === '/' && queryData.id === undefined){
+        const description = getFile(path.join(__dirname, 'description', 'home'));
+        const list = getDirList(path.join(__dirname, 'description'));
         let template = `
         <h1><a href="/">About Cat</a></h1>
-        <ol>
-            <li><a href="/?id=1">cat 1</a></li>
-            <li><a href="/?id=2">cat 2</a></li>
-            <li><a href="/?id=3">cat 3</a></li>
-        </ol>
+        ${list}
         <h2>home</h2>
         <p>${description}</p>
         `;
         response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
         response.end(template);
-    }
+    }*/
     else{
         response.writeHead(404, {'content-type': 'text/html; charset=utf-8'});
         response.end('page not found');
