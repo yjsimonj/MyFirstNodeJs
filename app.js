@@ -2,7 +2,6 @@ const http = require('http');
 const fs = require('fs').promises;
 const url = require('url');
 const path = require('path');
-const { stripTypeScriptTypes } = require('module');
 
 async function getFile(filename){
     try{
@@ -46,18 +45,6 @@ const app = http.createServer(async (request, response) => {
         response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
         response.end(template);
     }
-    /*else if(pathname === '/' && queryData.id === undefined){
-        const description = getFile(path.join(__dirname, 'description', 'home'));
-        const list = getDirList(path.join(__dirname, 'description'));
-        let template = `
-        <h1><a href="/">About Cat</a></h1>
-        ${list}
-        <h2>home</h2>
-        <p>${description}</p>
-        `;
-        response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
-        response.end(template);
-    }*/
     else{
         response.writeHead(404, {'content-type': 'text/html; charset=utf-8'});
         response.end('page not found');
@@ -65,6 +52,7 @@ const app = http.createServer(async (request, response) => {
 
 });
 
-app.listen(3000, () => {
-    console.log("success");
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
