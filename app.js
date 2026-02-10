@@ -58,7 +58,10 @@ const app = http.createServer(async (request, response) => {
         const description = await getFile(path.join(__dirname, 'description', id));
         const list = await getDirList(path.join(__dirname, 'description'));
         let template = templateHTML(list, id, description,
-            `<a href="/create">create</a> <a href="/update?id=${id}">update</a>`
+            `<a href="/create">create</a> <a href="/update?id=${id}">update</a> <form action="/delete_process" method="post" onsubmit="return confirm('do you really want to delete this file?');" style="display:inline;">
+            <input type="hidden" name="id" value="${id}">
+            <input type="submit" value="delete">
+            </form>`
         );
 
         response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
@@ -71,26 +74,6 @@ const app = http.createServer(async (request, response) => {
             `<form action="/create_process" method="post">
                 <p><input type="text" name="title" placeholder="tiltle"></p>
                 <p><textarea name="description" placeholder="description"></textarea></p>
-                <p><input type="submit"></p>
-                </form>
-            `,
-            ``
-        );
-
-        response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
-        response.end(template);
-    }
-
-    else if(pathname === '/update'){
-        const id = queryData.id;
-        console.log(id);
-        const description = await getFile(path.join(__dirname, 'description', id));
-        const list = await getDirList(path.join(__dirname, 'description'));
-        let template = templateHTML(list, `${id} updating`,
-            `<form action="/update_process" method="post">
-                <input type="hidden" name="id" value="${id}">
-                <p><input type="text" name="title" placeholder="tiltle" value="${id}"></p>
-                <p><textarea name="description" placeholder="description">${description}</textarea></p>
                 <p><input type="submit"></p>
                 </form>
             `,
@@ -122,6 +105,25 @@ const app = http.createServer(async (request, response) => {
         });
     }
 
+    else if(pathname === '/update'){
+        const id = queryData.id;
+        const description = await getFile(path.join(__dirname, 'description', id));
+        const list = await getDirList(path.join(__dirname, 'description'));
+        let template = templateHTML(list, `${id} updating`,
+            `<form action="/update_process" method="post">
+                <input type="hidden" name="id" value="${id}">
+                <p><input type="text" name="title" placeholder="tiltle" value="${id}"></p>
+                <p><textarea name="description" placeholder="description">${description}</textarea></p>
+                <p><input type="submit"></p>
+                </form>
+            `,
+            ``
+        );
+
+        response.writeHead(200, {'content-type': 'text/html; charset=utf-8'});
+        response.end(template);
+    }
+
     else if(pathname === `/update_process`){
         let body=``;
         request.on('data', (data) => {body += data;});
@@ -139,6 +141,26 @@ const app = http.createServer(async (request, response) => {
             }
             catch(err){
                 console.log("Can't update the file");
+                response.writeHead(500);
+                response.end('Server Error');
+            }
+        });
+    }
+
+    else if(pathname === '/delete_process'){
+        let body=``;
+        request.on('data', (data) => {body += data;});
+        request.on('end', async () => {
+            try{
+                const post = qs.parse(body);
+                const id = post.id;
+                await fs.unlink(`description/${id}`);
+
+                response.writeHead(302, {'Location': `/`});
+                response.end();
+            }
+            catch(err){
+                console.log("Can't delete the file");
                 response.writeHead(500);
                 response.end('Server Error');
             }
